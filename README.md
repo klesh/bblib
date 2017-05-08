@@ -38,7 +38,7 @@ $ npm i request -S
 const request = require('bblib/request');
 
 async function main() {
-  var res = await request.get('https://www.google.com');
+  var res = await request('https://www.google.com');
 
   console.log(`status: ${res.statusCode}`);
   console.log(`body  : ${res.body}`);
