@@ -1,0 +1,33 @@
+{
+  "name": "bblib",
+  "version": "0.0.1",
+  "description": "promisified libs for Node.js",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha tests/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/klesh/bblib.git"
+  },
+  "keywords": [
+    "bluebird",
+    "promisify",
+    "libs",
+    "fs",
+    "request"
+  ],
+  "author": "Klesh Wong",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/klesh/bblib/issues"
+  },
+  "homepage": "https://github.com/klesh/bblib#readme",
+  "dependencies": {
+    "bluebird": "^3.5.0"
+  },
+  "devDependencies": {
+    "mocha": "^3.3.0",
+    "should": "^11.2.1"
+  }
+}
