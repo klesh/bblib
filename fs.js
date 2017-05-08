@@ -2,16 +2,14 @@
 
 var fs = require('fs');
 var P = require('bluebird');
+var tool = require('./lib/tool');
 
-for (var name in fs) {
-  if (name === 'exists') {
-    exports.exists = function(path) {
+tool.promisifyCopy(fs, exports, {
+  handlers: {
+    exists: function(path) {
       return new P(function(resolve) {
         fs.exists(path, resolve);
       });
     }
-    exports.exists.__isPromisified__ = true;
-  } else if (typeof(fs[name]) === 'function') {
-    exports[name] = P.promisify(fs[name]);
   }
-}
+});
