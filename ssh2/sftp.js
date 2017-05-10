@@ -34,30 +34,6 @@ class Sftp {
 }
 
 
-function mapMethod(source, target) {
-  if (tool.fnHasCallback(value)) {
-    Sftp.prototype[source] = function() {
-      return this._sftp[target].apply(this._sftp, arguments);
-    }
-  } else {
-    Sftp.prototype[source] = function() {
-      return this._sftp[source].apply(this._sftp, arguments);
-    }
-  }
-}
-
-for (var name in SFTPWrapper.prototype) {
-  if (name in Sftp.prototype)
-    continue;
-
-  var value = SFTPWrapper.prototype[name];
-  if (typeof(value) === 'function') {
-    mapMethod(name, name + 'Async');
-  } else {
-    Sftp.prototype[name] = SFTPWrapper.prototype[name];
-  }
-}
-
-P.promisifyAll(SFTPWrapper.prototype);
+tool.promisifyBind(Sftp.prototype, SFTPWrapper.prototype, { prop: '_sftp' });
 
 module.exports = Sftp;
