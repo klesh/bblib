@@ -47,6 +47,43 @@ async function main() {
 main();
 ```
 
+# Wrappers
+Some libs were designed base on EvenEmitter, which can not be promisified simply. 
+Here is the list or some useful libs
+
+Same as before, you need to install the original package first by
+```bash
+$ npm i $PKG -S
+```
+
+## ssh2
+
+Homepage: https://github.com/mscdex/ssh2
+
+```
+const Client = require('bblib/ssh2');
+
+async function main() {
+  var client = new Client({
+    host: 'example.com',
+    username: 'root',
+    password: '******'
+  });
+
+  var retryCount = 10;
+  try {
+    await client.connect(retryCount);
+  } catch (e) {
+    ...
+  }
+
+  var files = await client.exec('ls');
+  var sftp = await client.sftp();
+  await sftp.writeFile('/path/to/files.log', files);
+  client.disconnect();
+}
+```
+
 # Contribution
 
-You are more than welcome to add new libs by sending Pull Request.
+You are more than welcome to contribute by sending Pull Request.

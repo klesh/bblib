@@ -160,30 +160,3 @@ class Client {
 }
 
 exports.Client = Client;
-
-if (require.main === module) {
-  var client = new Client({
-    host: 'ubuntu11',
-    username: 'klesh',
-    privateKey: require('fs').readFileSync('/home/klesh/.ssh/id_rsa')
-  });
-  /*client.connect().then(() => {*/
-    //client._ssh.sftp((err, sftp) => {
-      //console.log('sftp session error: ', err);
-      //sftp.writeFile('/home/klesh/test.log', 'askdfjalsdf', (err) => {
-        //console.log(err);
-      //});
-    //});
-  /*});*/
-
-  client.connect().then(() => {
-    return client.exec('ls');
-  }).then(output => {
-    console.log(output);
-    return client.sftp();
-  }).then(sftp => {
-    return sftp.writeFile('/home/klesh/example.csv', require('fs').readFileSync('/home/klesh/Desktop/ip.mkd'));
-  }).finally(() => {
-    client.disconnect();
-  });
-}
