@@ -56,7 +56,11 @@ Same as before, you need to install the original package first by
 $ npm i $PKG -S
 ```
 
+## sh
+Wrap `child_process` to execute shell command
+
 ## ssh2
+Wrap `ssh2` to provide ssh access
 
 Homepage: https://github.com/mscdex/ssh2
 
@@ -81,6 +85,56 @@ async function main() {
   var sftp = await client.sftp();
   await sftp.writeFile('/path/to/files.log', files);
   client.disconnect();
+}
+```
+
+## RestClient
+Wrap request to provide a general purpose RESTful client
+```
+var client = new RestClient({
+   suppress: true,                              // suppress rejection while response status is not ok
+   prefix: 'http://api.example.com',            // api url prefix
+   beforeSend: async function(opts) {           // modify request options before sending, like adding signature
+     opts.headers = {
+       signature: await sign(opt.form)
+     };
+   },
+   afterReceive: function(resp) {               // reject with a custom error while status code is not 200
+     if (resp.status !== 200)
+       return P.reject(new MyOwnError('request error'));
+   }
+})
+
+// or:
+
+var client = new RestClient({ suppress: true });
+client.prefix = 'https://api.example.com';
+client.beforeSend = function(options) {  };
+
+// then:
+
+async function madin() {
+  var getQuery = { page: 2 };
+  var list = await client.get('/orders', getQuery);
+  if (list['error'])
+    throw new Error(list['message']);
+
+  console.log(list.body['data']);
+
+  var postJson = { name: 'John Doe', phone: '94823944', ... };
+  var postQuery = { overwrite: true };
+  var created = await client.post('/orders', postJson, postQuery);
+  if (created['error'])
+    throw new Error(created['message']);
+
+  console.log(created.body.data.id);
+
+  try {
+    client.suppress = false;
+    await client.get('/path/some/error');
+  } catch (e) {
+    console.log(e.response.body.message);
+  }
 }
 ```
 
