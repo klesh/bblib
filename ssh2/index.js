@@ -32,6 +32,12 @@ class Client {
 
     options.port = options.port || 22;
     this.options = options;
+    if (options.logger) {
+      this.logger = options.logger;
+      delete options.logger;
+    } else {
+      this.logger = console.log;
+    }
   }
 
   _connect(retry) {
@@ -40,19 +46,21 @@ class Client {
     retry = retry || 0;
     return new P(function(resolve, reject) {
       var ssh = new Ssh2Client();
-      ssh.once('ready', () => {
+      ssh.once('ready', function() {
         debug(`connected to %s@%s:%d`, options.username, options.host, options.port);
         resolve(ssh);
-      });
-      ssh.once('error', (e) => {
+      })
+      ssh.once('error', function(e) {
         debug(`connect to %s@%s:%d fail: %s`, options.username, options.host, options.port, e);
         reject(e);
       });
-      ssh.once('end', () => debug('disconnected'));
+      ssh.once('end', function() {
+        debug('disconnected');
+      })
       ssh.connect(self.options);
-    }).catch(e => {
+    }).catch(function(e) {
       if (retry-- > 0) {
-        console.log('retry to connect to %s@%s:%d %d times left', options.username, options.host, options.port, retry);
+        debug('retry to connect to %s@%s:%d %d times left', options.username, options.host, options.port, retry);
         return self._connect(retry);
       }
       return P.reject(e);
@@ -81,9 +89,12 @@ class Client {
    */
   connect(retry) {
     var self = this;
-    self.disconnect();
+    if (this._ssh) {
+      return this;
+    }
     return self._connecting = self._connecting || self._connect(retry).then(function(ssh) {
       self._ssh = ssh;
+      return this;
     });
   }
 
