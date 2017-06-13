@@ -4,6 +4,7 @@ var debug = require('debug')('bblib:ssh2');
 var P = require('bluebird');
 var Ssh2Client = require('ssh2').Client;
 var Sftp = require('./sftp');
+var _ = require('lodash');
 
 P.promisifyAll(Ssh2Client.prototype);
 
@@ -22,7 +23,7 @@ class Client {
   /**
    * @param {Ssh2Options} options
    */
-  constructor(options) {
+  constructor(options, defaultExecOptions) {
     if (!options)
       throw new Error('Ssh2Options is required');
     if (!options.username)
@@ -32,36 +33,43 @@ class Client {
 
     options.port = options.port || 22;
     this.options = options;
+    this.defaultExecOptions = defaultExecOptions;
     if (options.logger) {
       this.logger = options.logger;
       delete options.logger;
     } else {
-      this.logger = console.log;
+      this.logger = debug;
     }
   }
 
-  _connect(retry) {
+  _connect(opts) {
     var self = this;
     var options = self.options;
-    retry = retry || 0;
+    var logger = this.logger;
+    opts = opts ? _.clone(opts) : {};
+    opts.retry = opts.retry || 0;
+    opts.delay = opts.delay || 0;
     return new P(function(resolve, reject) {
       var ssh = new Ssh2Client();
       ssh.once('ready', function() {
-        debug(`connected to %s@%s:%d`, options.username, options.host, options.port);
+        logger(`connected to %s@%s:%d`, options.username, options.host, options.port);
         resolve(ssh);
       })
       ssh.once('error', function(e) {
-        debug(`connect to %s@%s:%d fail: %s`, options.username, options.host, options.port, e);
+        logger(`connect to %s@%s:%d fail: %s`, options.username, options.host, options.port, e);
         reject(e);
       });
       ssh.once('end', function() {
-        debug('disconnected');
+        logger('disconnected');
       })
       ssh.connect(self.options);
     }).catch(function(e) {
-      if (retry-- > 0) {
-        debug('retry to connect to %s@%s:%d %d times left', options.username, options.host, options.port, retry);
-        return self._connect(retry);
+      if (opts.retry-- > 0) {
+        var p = P.resolve();
+        if (opts.delay)
+          p = P.delay(opts.delay);
+        logger('retry to connect to %s@%s:%d %d times left', options.username, options.host, options.port, opts.retry);
+        return p.then(() => self._connect(opts));
       }
       return P.reject(e);
     });
@@ -87,14 +95,14 @@ class Client {
   /**
    * connect to ssh server
    */
-  connect(retry) {
+  connect(opts) {
     var self = this;
     if (this._ssh) {
       return this;
     }
-    return self._connecting = self._connecting || self._connect(retry).then(function(ssh) {
+    return self._connecting = self._connecting || self._connect(opts).then(function(ssh) {
       self._ssh = ssh;
-      return this;
+      return self;
     });
   }
 
@@ -116,7 +124,9 @@ class Client {
    */
   exec(command, options) {
     var self = this;
-    options = options || {};
+    options = options ? _.clone(options) : {};
+    if (this.defaultExecOptions)
+      _.defaultsDeep(options, this.defaultExecOptions);
     if ((command.startsWith('sudo ') || options.sudo) && this.options.password) {
       options.pty = true;
       options.expect = 'password';
@@ -146,16 +156,26 @@ class Client {
           }
         }).on('close', function(code, signal) {
           if (code) {
-            var err = new Error(stderr);
-            err.code = code;
-            err.signal = signal;
-            reject(err);
+            if (options.retry-- > 0) { // retry...
+              debug('exec err: ', stderr);
+              debug(`retrying count down #${options.retry}`);
+              var p = options.delay ? P.delay(options.delay) : P.resolve();
+
+              p.then(() => {
+                resolve(self.exec(command, options));
+              });
+            } else {
+              var err = new Error(stderr);
+              err.code = code;
+              err.signal = signal;
+              reject(err);
+            }
           } else {
             resolve(stdout.trim());
           }
         }).stderr.on('data', function(data) {
           var text = data.toString();
-          stdout += text;
+          stderr += text;
           debug('stderr: ', text);
         });
       });

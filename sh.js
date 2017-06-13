@@ -2,7 +2,7 @@
 
 var P = require('bluebird');
 var spawn = require('child_process').spawn;
-var debug = require('debug')('bblih:sh');
+var debug = require('debug')('bblib:sh');
 
 function sh(cmd, args, opts) {
   return new P(function(resolve, reject) {

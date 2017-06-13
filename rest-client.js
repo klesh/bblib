@@ -3,7 +3,7 @@
 var request = require('./request');
 var P = require('bluebird');
 var _ = require('lodash');
-var debug = require('debug')('rest');
+var debug = require('debug')('bblib:rest');
 
 class RestClient {
   /**
@@ -84,7 +84,7 @@ class RestClient {
     });
     // clean up defaults by moving options for RestClient only from defaults to `this`
     var self = this;
-    _.each(['prefix', 'beforeSend', 'afterReceive', 'suppress'], function(name) {
+    _.each(['prefix', 'beforeSend', 'afterReceive', 'requestBegin', 'requestEnd', 'suppress'], function(name) {
       self[name] = self.defaults[name];
       delete self.defaults[name];
     });
@@ -114,12 +114,16 @@ class RestClient {
       });
     }
 
+    if (self.requestBegin)
+      p = p.tap(self.requestBegin);
+
     p = p.then(function() {
       debug('sending: ');
       debug(options);
       return request(options);
     }).tap(function(resp) {
       debug('receiving: %s %s  status code: %s', options.method, resp.request.uri.href, resp.statusCode);
+      debug(resp.body);
     });
 
     if (self.afterReceive) {
@@ -140,6 +144,9 @@ class RestClient {
         return P.reject(e);
       }
     });
+
+    if (self.requestEnd)
+      p = p.finally(self.requestEnd);
 
     return p;
   }
