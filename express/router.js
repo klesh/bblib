@@ -14,9 +14,23 @@ var express = module.exports = require('express');
  *   route.post('/reset-password', req => new AuthService(req).resetPassword(req.body));
  * });
  *
+ * // the promise resolved result will be saved to res.locals.data, you can then customize the output by express middleware
+ *
  * app.use(function(req, res, next) {
- * i
- * })
+ *   const {resolved, result} = res.locals;
+ *   if (resolved) {
+ *     if (result) {
+ *       if (result instanceof Buffer) {
+ *         res.type('application/octet-stream');
+ *         res.end(result, 'binary');
+ *       } else {
+ *         res.json({code: 'SUCCESS', data: result});
+ *       }
+ *     }
+ *   } else {
+ *     next(new Error(404));
+ *   }
+ * });
  */
 express.Router.mount = function(url, Service, mounter) {
   var route = express.Router();
@@ -31,11 +45,9 @@ express.Router.mount = function(url, Service, mounter) {
       if (!promise.then)
         throw new Error('The handle must return a Promise instance.');
 
-      promise.then(function(data) {
-        if (data === undefined || data === null) {
-          return;
-        }
-        res.locals.data = data;
+      promise.then(function(result) {
+        res.locals.resolved = true;
+        res.locals.result = result;
         next();
       }, next);
     };
