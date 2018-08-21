@@ -1,29 +1,27 @@
-'use strict';
-
-var P = require('bluebird');
-var spawn = require('child_process').spawn;
-var debug = require('debug')('bblib:sh');
+const P = require('bluebird');
+const spawn = require('child_process').spawn;
+const debug = require('debug')('bblib:sh');
 
 function sh(cmd, args, opts) {
   return new P(function(resolve, reject) {
-    var child = spawn(cmd, args, opts);
+    const child = spawn(cmd, args, opts);
 
     debug('command: ', cmd, (args || []).join(' '));
 
     if (opts)
       debug('arguments: ', JSON.stringify(opts));
 
-    var stdout = [], stderr = [];
+    const stdout = [], stderr = [];
     if (!opts || opts.stdio !== 'inherit') {
       child.stdout.on('data', function(data) {
-        var text = data.toString();
+        const text = data.toString();
         debug('stdout: ', text);
         if (opts && opts.onStdoutData)
           opts.onStdoutData(text, child);
         stdout.push(text);
       });
       child.stderr.on('data', function(data) {
-        var text = data.toString();
+        const text = data.toString();
         debug('stderr: ', text);
         if (opts && opts.onStderrData)
           opts.onStderrData(text, child);
