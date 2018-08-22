@@ -65,7 +65,9 @@ describe('rest-client lib', function() {
 
   it('post', async function() {
     const resp = await client.post('/', {
-      'foo': 'bar'
+      json: {
+        'foo': 'bar'
+      }
     });
 
     should(resp.body.data).be.deepEqual({'foo': 'bar'});
@@ -73,7 +75,9 @@ describe('rest-client lib', function() {
 
   it('put', async function() {
     const resp = await client.put('/', {
-      'hello': 'world'
+      json: {
+        'hello': 'world'
+      }
     });
 
     should(resp.body.data).be.deepEqual({'hello': 'world'});

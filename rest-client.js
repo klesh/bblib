@@ -56,9 +56,9 @@ class RestClient {
    *
    *   console.log(list.body['data']);
    *
-   *   var postJson = { name: 'John Doe', phone: '94823944', ... };
-   *   var postQuery = { overwrite: true };
-   *   var created = await client.post('/orders', postJson, postQuery);
+   *   var json = { name: 'John Doe', phone: '94823944', ... };
+   *   var qs = { overwrite: true };
+   *   var created = await client.post('/orders', {qs, json});
    *   if (created['error'])
    *     throw new Error(created['message']);
    *
@@ -66,7 +66,7 @@ class RestClient {
    *
    *   try {
    *     client.suppress = false;
-   *     await client.get('/path/some/error');
+   *     await client.get('/path/some/error', {keyword: 'hi'});
    *   } catch (e) {
    *     console.log(e.response.body.message);
    *   }
@@ -95,7 +95,7 @@ class RestClient {
     return contentType.split(';')[0];
   }
 
-  async wrapRequest(opts) {
+  async send(opts) {
     let options = _.defaultsDeep({}, opts, this.defaults);
 
 
@@ -144,7 +144,7 @@ class RestClient {
    * @param {object}  qs        query object, ie: { page: 1, names: [ 'a', 'b', 'c' ] }
    */
   async get(url, qs) {
-    return await this.wrapRequest({
+    return await this.send({
       method: 'GET',
       url,
       qs
@@ -154,31 +154,19 @@ class RestClient {
   /**
    * perform a POST request
    * @param {string}  url
-   * @param {object}  json      post body
-   * @param {object}  qs
+   * @param {object}  opts
    */
-  async post(url, json, qs) {
-    return await this.wrapRequest({
-      method: 'POST',
-      url,
-      json,
-      qs
-    });
+  async post(url, opts) {
+    return await this.send(_.assign({method: 'POST', url}, opts));
   }
 
   /**
    * perform a PUT request
    * @param {string}  url
-   * @param {object}  json      post body
-   * @param {object}  qs
+   * @param {object}  opts
    */
-  async put(url, json, qs) {
-    return await this.wrapRequest({
-      method: 'PUT',
-      url,
-      json,
-      qs
-    });
+  async put(url, opts) {
+    return await this.send(_.assign({method: 'PUT', url}, opts));
   }
 
   /**
@@ -187,7 +175,7 @@ class RestClient {
    * @param {object}  qs
    */
   async delete(url, qs) {
-    return await this.wrapRequest({
+    return await this.send({
       method: 'DELETE',
       url,
       qs
