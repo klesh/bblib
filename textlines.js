@@ -5,18 +5,21 @@ const _ = require('lodash');
 /**
  * process lines concurrently
  *
- * @param {ReadableStream} inputStream - stream to be read from
- * @param {function(line:string, cursor:number)} lineHandler
- * @param {number} [skip=0] - number of lines to be skipped
- * @param {boolean} [quiet=true] - suppress all errors threw by lineHandler
+ * @param {object} opts
+ * @param {ReadableStream} opts.inputStream - stream to be read from
+ * @param {function(line:string, cursor:number)} opts.lineHandler
+ * @param {number} [opts.skip=0] - number of lines to be skipped
+ * @param {boolean} [opts.quiet=false] - suppress all errors threw by lineHandler
+ * @param {boolean} [opts.autoClose=true] - close inputStream automatically
  */
 async function process({inputStream, skip, lineHandler, quiet}) {
   skip = skip || 0;
 
   return await new P((resolve, reject) => {
-    const reader = readline.createInterface({input: inputStream});
-    const errors = [];
     let cursor = 0;
+    const errors = [];
+
+    const reader = readline.createInterface({input: inputStream});
     reader.on('line', async line => {
       if (cursor++ < skip || (!quiet && errors.length)) {
         return;
@@ -29,21 +32,22 @@ async function process({inputStream, skip, lineHandler, quiet}) {
           e.line = lineNo;
           errors.push(e);
           reader.close();
-          inputStream.destroy();
         }
       } finally {
-        if (++skip >= cursor) {
-          if (errors.length) {
-            const e = new Error('E_LINE_ERROR');
-            e.lines = errors;
-            e.getMinLineNo = function() {
-              return _(this.lines).map(el => el.line).min();
-            };
-            reject(e);
-          } else {
-            resolve(skip);
-          }
-        }
+        skip++;
+      }
+    }).on('close', async () => {
+      while (skip < cursor)
+        await P.delay(100);
+      if (errors.length) {
+        const e = new Error('E_LINE_ERROR');
+        e.lines = errors;
+        e.getMinLineNo = function() {
+          return _(this.lines).map(el => el.line).min();
+        };
+        reject(e);
+      } else {
+        resolve(skip);
       }
     });
   });

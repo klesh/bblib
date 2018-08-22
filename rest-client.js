@@ -1,9 +1,7 @@
-'use strict';
-
-var request = require('./request');
-var P = require('bluebird');
-var _ = require('lodash');
-var debug = require('debug')('bblib:rest');
+const request = require('./request');
+const P = require('bluebird');
+const _ = require('lodash');
+const debug = require('debug')('bblib:rest');
 
 class RestClient {
   /**
@@ -82,73 +80,49 @@ class RestClient {
       method: 'GET',
       useQuerystring: true
     });
-    // clean up defaults by moving options for RestClient only from defaults to `this`
-    var self = this;
-    _.each(['prefix', 'beforeSend', 'afterReceive', 'requestBegin', 'requestEnd', 'suppress'], function(name) {
-      self[name] = self.defaults[name];
-      delete self.defaults[name];
-    });
+    const keys = ['prefix', 'beforeSend', 'afterReceive', 'suppress'];
+    for (let key of keys) {
+      this[key] = this.defaults[key];
+      delete this.defaults[key];
+    }
   }
 
   getContentType(res) {
-    var contentType = res.headers['content-type'] || '';
+    const contentType = res.headers['content-type'] || '';
     return contentType.split(';')[0];
   }
 
-  wrapRequest(opts) {
+  async wrapRequest(opts) {
     if (!opts.url)
       return P.reject(new Error('opts.url can not be empty'));
 
-    var self = this, options = {};
-    _.defaultsDeep(options, opts, self.defaults);
+    let options = _.defaultsDeep({}, opts, this.defaults);
 
-    options.url = self.prefix + opts.url;
-
-    var p = P.resolve();
+    options.url = this.prefix + options.url;
 
     if (this.beforeSend) {
-      p = p.then(function() {
-        return self.beforeSend(options);
-      }).then(newOptions => {
-        return options = newOptions || options;
-      });
+      await this.beforeSend(options);
     }
 
-    if (self.requestBegin)
-      p = p.tap(self.requestBegin);
+    debug('sending: ');
+    debug(options);
+    const resp = await request(options);
+    debug('receiving: %s %s  status code: %s', options.method, resp.request.uri.href, resp.statusCode);
+    debug(resp.body);
 
-    p = p.then(function() {
-      debug('sending: ');
-      debug(options);
-      return request(options);
-    }).tap(function(resp) {
-      debug('receiving: %s %s  status code: %s', options.method, resp.request.uri.href, resp.statusCode);
-      debug(resp.body);
-    });
+    if (this.afterReceive)
+      await this.afterReceive(resp);
 
-    if (self.afterReceive) {
-      p = p.then(function(resp) {
-        return P.resolve(self.afterReceive(resp)).then(function(newResp) {
-          return newResp || resp;
-        });
-      });
+    resp.body = this.parseBody(this.getContentType(resp), resp.body);
+
+    if (!this.suppress && (resp.statusCode < 200 || resp.statusCode >= 300) ) {
+      const e = new Error(resp.statusMessage);
+      e.response = resp;
+      e.isOperational = true;
+      throw e;
     }
 
-    p = p.tap(function(resp) {
-      resp.body = self.parseBody(self.getContentType(resp), resp.body);
-
-      if (!self.suppress && (resp.statusCode < 200 || resp.statusCode >= 300) ) {
-        var e = new Error(resp.statusMessage);
-        e.response = resp;
-        e.isOperational = true;
-        return P.reject(e);
-      }
-    });
-
-    if (self.requestEnd)
-      p = p.finally(self.requestEnd);
-
-    return p;
+    return resp;
   }
 
   parseBody(contentType, body) {
@@ -169,8 +143,8 @@ class RestClient {
    * @param {string}  url       relative to prefix
    * @param {object}  qs        query object, ie: { page: 1, names: [ 'a', 'b', 'c' ] }
    */
-  get(url, qs) {
-    return this.wrapRequest({
+  async get(url, qs) {
+    return await this.wrapRequest({
       method: 'GET',
       url,
       qs
@@ -183,8 +157,8 @@ class RestClient {
    * @param {object}  json      post body
    * @param {object}  qs
    */
-  post(url, json, qs) {
-    return this.wrapRequest({
+  async post(url, json, qs) {
+    return await this.wrapRequest({
       method: 'POST',
       url,
       json,
@@ -198,8 +172,8 @@ class RestClient {
    * @param {object}  json      post body
    * @param {object}  qs
    */
-  put(url, json, qs) {
-    return this.wrapRequest({
+  async put(url, json, qs) {
+    return await this.wrapRequest({
       method: 'PUT',
       url,
       json,
@@ -212,8 +186,8 @@ class RestClient {
    * @param {string}  url
    * @param {object}  qs
    */
-  delete(url, qs) {
-    return this.wrapRequest({
+  async delete(url, qs) {
+    return await this.wrapRequest({
       method: 'DELETE',
       url,
       qs
