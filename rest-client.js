@@ -82,6 +82,9 @@ class RestClient {
     });
     const keys = ['prefix', 'beforeSend', 'afterReceive', 'suppress'];
     for (let key of keys) {
+      if (!(key in this.defaults))
+        continue;
+
       this[key] = this.defaults[key];
       delete this.defaults[key];
     }
