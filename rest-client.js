@@ -1,5 +1,5 @@
 const request = require('./request');
-const P = require('bluebird');
+const req = require('request');
 const _ = require('lodash');
 const debug = require('debug')('bblib:rest');
 
@@ -106,6 +106,10 @@ class RestClient {
 
     debug('sending: ');
     debug(options);
+    if (opts.stream) {
+      debug('streaming mode');
+      return req(options);
+    }
     const resp = await request(options);
     debug('receiving: %s %s  status code: %s', options.method, resp.request.uri.href, resp.statusCode);
     debug(resp.body);
@@ -113,13 +117,16 @@ class RestClient {
     if (this.afterReceive)
       await this.afterReceive(resp);
 
-    resp.body = this.parseBody(this.getContentType(resp), resp.body);
-
-    if (!this.suppress && (resp.statusCode < 200 || resp.statusCode >= 300) ) {
-      const e = new Error(resp.statusMessage);
-      e.response = resp;
-      e.isOperational = true;
-      throw e;
+    if (opts.stream) {
+      return resp;
+    } else {
+      resp.body = this.parseBody(this.getContentType(resp), resp.body);
+      if (!this.suppress && (resp.statusCode < 200 || resp.statusCode >= 300) ) {
+        const e = new Error(resp.statusMessage);
+        e.response = resp;
+        e.isOperational = true;
+        throw e;
+      }
     }
 
     return resp;
@@ -142,13 +149,10 @@ class RestClient {
    *
    * @param {string}  url       relative to prefix
    * @param {object}  qs        query object, ie: { page: 1, names: [ 'a', 'b', 'c' ] }
+   * @param {object}  opts
    */
-  async get(url, qs) {
-    return await this.send({
-      method: 'GET',
-      url,
-      qs
-    });
+  async get(url, qs, opts) {
+    return await this.send(_.assign({method: 'GET', url, qs}, opts));
   }
 
   /**
@@ -173,20 +177,17 @@ class RestClient {
    * perform a DELETE request
    * @param {string}  url
    * @param {object}  qs
+   * @param {object}  opts
    */
-  async delete(url, qs) {
-    return await this.send({
-      method: 'DELETE',
-      url,
-      qs
-    });
+  async delete(url, qs, opts) {
+    return await this.send(_.assign({method: 'DELETE', url, qs}, opts));
   }
   /**
    * perform a DELETE request
    * @param {string}  url
    */
-  async head(url) {
-    return await this.send({method: 'HEAD', url});
+  async head(url, opts) {
+    return await this.send(_.assign({method: 'HEAD', url}, opts));
   }
 }
 
