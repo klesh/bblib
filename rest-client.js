@@ -96,9 +96,6 @@ class RestClient {
   }
 
   async wrapRequest(opts) {
-    if (!opts.url)
-      return P.reject(new Error('opts.url can not be empty'));
-
     let options = _.defaultsDeep({}, opts, this.defaults);
 
 
