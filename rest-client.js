@@ -181,6 +181,13 @@ class RestClient {
       qs
     });
   }
+  /**
+   * perform a DELETE request
+   * @param {string}  url
+   */
+  async head(url) {
+    return await this.send({method: 'HEAD', url});
+  }
 }
 
 module.exports = RestClient;
