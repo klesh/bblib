@@ -101,11 +101,11 @@ class RestClient {
 
     let options = _.defaultsDeep({}, opts, this.defaults);
 
-    options.url = this.prefix + options.url;
 
     if (this.beforeSend) {
       await this.beforeSend(options);
     }
+    options.url = this.prefix + options.url;
 
     debug('sending: ');
     debug(options);
