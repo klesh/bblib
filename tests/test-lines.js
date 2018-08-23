@@ -30,6 +30,7 @@ describe('lines', function() {
     });
     const e = await should(p).be.rejectedWith('E_LINE_ERROR');
     should(e.getMinLineNo()).be.exactly(3);
+    should(e.getInitialError().line).be.exactly(3);
   });
 
   it('quiet should ignore all errors', async function() {

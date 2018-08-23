@@ -43,7 +43,16 @@ async function process({inputStream, skip, lineHandler, quiet}) {
         const e = new Error('E_LINE_ERROR');
         e.lines = errors;
         e.getMinLineNo = function() {
-          return _(this.lines).map(el => el.line).min();
+          return _(this.lines).map(le => le.line).min();
+        };
+        e.getInitialError = function() {
+          let min = this.lines[0];
+          _(this.lines).each(le => {
+            if (le.line < min.line) {
+              min = le;
+            }
+          });
+          return min;
         };
         reject(e);
       } else {
