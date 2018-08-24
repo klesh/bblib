@@ -51,7 +51,9 @@ describe('rest-client lib', function() {
   const beforeSend = sinon.spy();
   const afterReceive = sinon.spy();
   const client = new RestClient({
-    prefix: `http://localhost:${port}`,
+    defaults: {
+      baseUrl: `http://localhost:${port}`,
+    },
     beforeSend,
     afterReceive
   });

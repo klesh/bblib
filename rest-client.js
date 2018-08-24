@@ -19,18 +19,18 @@ class RestClient {
    * default options for RestClient request
    * RequestOptions reference: https://www.npmjs.com/package/request#requestoptions-callback
    * @typedef {RequestOptions} RestClientOptions
-   * @property {string}                           prefix            will bed prepended to url for every request
-   * @property {boolean}                          [suppress=false]  suppress rejection while response status is not ok
-   * @property {RestClient~beforeSendCallback}    [beforeSend]      being called before sending out request, you can modify request options here
-   * @property {RestClient~afterReceiveCallback}  [afterReceive]    being called before returning response to caller, you can modify response object here
-   * @property {number}                           retry             how many times to retry
+   * @property {object} defaults - defaults options to be passed to request
+   * @property {boolean} [suppress=false] - suppress rejection while response status is not ok
+   * @property {RestClient~beforeSendCallback} [beforeSend] -  being called before sending out request, you can modify request options here
+   * @property {RestClient~afterReceiveCallback} [afterReceive] - being called before returning response to caller, you can modify response object here
+   * @property {number} [retry=3] - how many times to retry
    */
   /**
    * @example
    * ```
    * var client = new RestClient({
+   *    defaults: { baseUrl: 'http://api.example.com' }
    *    suppress: true,                              // suppress rejection while response status is not ok
-   *    prefix: 'http://api.example.com',            // api url prefix
    *    retry: 3,
    *    beforeSend: async function(opts) {           // modify request options before sending, like adding signature
    *      opts.headers = {
@@ -46,7 +46,6 @@ class RestClient {
    * // or:
    *
    * var client = new RestClient({ suppress: true });
-   * client.prefix = 'https://api.example.com';
    * client.beforeSend = function(options) {  };
    *
    * // then:
@@ -78,20 +77,15 @@ class RestClient {
    *
    * @param {RestClientDefaults}  defaults
    */
-  constructor(defaults) {
+  constructor({defaults, retry, suppress, beforeSend, afterReceive}) {
     this.defaults = _.defaultsDeep({}, defaults, {
       method: 'GET',
       useQuerystring: true,
-      retry: 3
     });
-    const keys = ['prefix', 'beforeSend', 'afterReceive', 'suppress', 'retry'];
-    for (let key of keys) {
-      if (!(key in this.defaults))
-        continue;
-
-      this[key] = this.defaults[key];
-      delete this.defaults[key];
-    }
+    this.retry = retry || 3;
+    this.suppress = suppress || false;
+    this.beforeSend = beforeSend || this.beforeSend;
+    this.afterReceive = afterReceive || this.afterReceive;
   }
 
   getContentType(res) {
@@ -106,7 +100,6 @@ class RestClient {
     if (this.beforeSend) {
       await this.beforeSend(options);
     }
-    options.url = this.prefix + options.url;
 
     debug('sending: ');
     debug(options);
