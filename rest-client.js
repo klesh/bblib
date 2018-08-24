@@ -2,6 +2,7 @@ const request = require('./request');
 const req = require('request');
 const _ = require('lodash');
 const debug = require('debug')('bblib:rest');
+const P = require('bluebird');
 
 class RestClient {
   /**
@@ -22,6 +23,7 @@ class RestClient {
    * @property {boolean}                          [suppress=false]  suppress rejection while response status is not ok
    * @property {RestClient~beforeSendCallback}    [beforeSend]      being called before sending out request, you can modify request options here
    * @property {RestClient~afterReceiveCallback}  [afterReceive]    being called before returning response to caller, you can modify response object here
+   * @property {number}                           retry             how many times to retry
    */
   /**
    * @example
@@ -29,6 +31,7 @@ class RestClient {
    * var client = new RestClient({
    *    suppress: true,                              // suppress rejection while response status is not ok
    *    prefix: 'http://api.example.com',            // api url prefix
+   *    retry: 3,
    *    beforeSend: async function(opts) {           // modify request options before sending, like adding signature
    *      opts.headers = {
    *        signature: await sign(opt.form)
@@ -78,9 +81,10 @@ class RestClient {
   constructor(defaults) {
     this.defaults = _.defaultsDeep({}, defaults, {
       method: 'GET',
-      useQuerystring: true
+      useQuerystring: true,
+      retry: 3
     });
-    const keys = ['prefix', 'beforeSend', 'afterReceive', 'suppress'];
+    const keys = ['prefix', 'beforeSend', 'afterReceive', 'suppress', 'retry'];
     for (let key of keys) {
       if (!(key in this.defaults))
         continue;
@@ -110,7 +114,19 @@ class RestClient {
       debug('streaming mode');
       return req(options);
     }
-    const resp = await request(options);
+    let resp;
+    let retry = 0;
+    while (true) {
+      try {
+        resp = await request(options);
+        break;
+      } catch (e) {
+        if (++retry > this.retry) {
+          throw e;
+        }
+        await P.delay(100);
+      }
+    }
     debug('receiving: %s %s  status code: %s', options.method, resp.request.uri.href, resp.statusCode);
     debug(resp.body);
 
