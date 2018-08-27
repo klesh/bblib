@@ -142,7 +142,7 @@ class RestClient {
   }
 
   parseBody(contentType, body) {
-    if (_.isString(body) === false)
+    if (_.isString(body) === false || !body)
       return body;
 
     switch(contentType) {
