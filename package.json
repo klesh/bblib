@@ -1,6 +1,6 @@
 {
   "name": "bblib",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "promisified libs for Node.js",
   "main": "index.js",
   "scripts": {

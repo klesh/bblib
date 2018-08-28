@@ -3,7 +3,7 @@ const P = require('bluebird');
 const tool = require('./lib/tool');
 const path = require('path');
 const debug = require('debug')('bblib:fs');
-const stream = require('stream');
+const {Writable} = require('stream');
 
 tool.promisifyCopy(fs, exports, {
   handlers: {
@@ -15,7 +15,7 @@ tool.promisifyCopy(fs, exports, {
   }
 });
 
-fs.promisifyAll(stream.prototype);
+P.promisifyAll(Writable.prototype);
 
 exports.mkdirp = function(dir) {
   return exports.stat(dir).then(function(stat) {
