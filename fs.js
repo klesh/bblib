@@ -1,10 +1,9 @@
-'use strict';
-
-var fs = require('fs');
-var P = require('bluebird');
-var tool = require('./lib/tool');
-var path = require('path');
-var debug = require('debug')('bblib:fs');
+const fs = require('fs');
+const P = require('bluebird');
+const tool = require('./lib/tool');
+const path = require('path');
+const debug = require('debug')('bblib:fs');
+const stream = require('stream');
 
 tool.promisifyCopy(fs, exports, {
   handlers: {
@@ -16,6 +15,8 @@ tool.promisifyCopy(fs, exports, {
   }
 });
 
+fs.promisifyAll(stream.prototype);
+
 exports.mkdirp = function(dir) {
   return exports.stat(dir).then(function(stat) {
     if (stat.isDirectory())
@@ -26,13 +27,13 @@ exports.mkdirp = function(dir) {
     if (err.code !== 'ENOENT')
       return P.reject(err);
 
-    var parentDir = path.dirname(dir);
+    const parentDir = path.dirname(dir);
     return exports.mkdirp(parentDir).then(function() {
       debug('making dir: ', dir);
       return exports.mkdir(dir);
     });
   }).return(dir);
-}
+};
 
 exports.rmdirp = function(dir) {
   return exports.stat(dir).then(function(stat) {
@@ -48,4 +49,4 @@ exports.rmdirp = function(dir) {
     if (err.code !== 'ENOENT')
       return P.reject(err);
   }).return(dir);
-}
+};
