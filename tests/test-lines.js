@@ -28,9 +28,9 @@ describe('lines', function() {
           throw new Error('test');
       }
     });
-    const e = await should(p).be.rejectedWith('E_LINE_ERROR');
-    should(e.getMinLineNo()).be.exactly(3);
-    should(e.getInitialError().line).be.exactly(3);
+    const e = await should(p).be.rejectedWith('test');
+    should(e.line).be.exactly(3);
+    should(e.errors).be.ok();
   });
 
   it('quiet should ignore all errors', async function() {
