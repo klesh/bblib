@@ -66,6 +66,10 @@ describe('rest-client lib', function() {
   });
 
   it('post', async function() {
+    let timespan;
+    client.on('elapsed', ts => {
+      timespan = ts;
+    });
     const resp = await client.post('/', {
       json: {
         'foo': 'bar'
@@ -73,6 +77,7 @@ describe('rest-client lib', function() {
     });
 
     should(resp.body.data).be.deepEqual({'foo': 'bar'});
+    should(timespan).be.ok();
   });
 
   it('put', async function() {

@@ -3,8 +3,9 @@ const req = require('request');
 const _ = require('lodash');
 const debug = require('debug')('bblib:rest');
 const P = require('bluebird');
+const EventEmitter = require('events');
 
-class RestClient {
+class RestClient extends EventEmitter {
   /**
    * @callback beforeSendCallback
    * @param {RequestOptions}  options
@@ -78,6 +79,7 @@ class RestClient {
    * @param {RestClientDefaults}  defaults
    */
   constructor({defaults, retry, suppress, beforeSend, afterReceive}) {
+    super();
     this.defaults = _.defaultsDeep({}, defaults, {
       method: 'GET',
       useQuerystring: true,
@@ -111,12 +113,17 @@ class RestClient {
     let retry = 0;
     while (true) {
       try {
+        const startAt = process.hrtime();
+        this.emit('start', options);
         resp = await request(options);
+        this.emit('end', resp);
+        this.emit('elapsed', process.hrtime(startAt));
         break;
       } catch (e) {
         if (++retry > this.retry) {
           throw e;
         }
+        this.emit('retry', e);
         await P.delay(100);
       }
     }
