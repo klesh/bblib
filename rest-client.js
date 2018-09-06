@@ -117,7 +117,7 @@ class RestClient extends EventEmitter {
         this.emit('start', options);
         resp = await request(options);
         this.emit('end', resp);
-        this.emit('elapsed', process.hrtime(startAt));
+        this.emit('elapsed', process.hrtime(startAt), options, resp);
         break;
       } catch (e) {
         if (++retry > this.retry) {

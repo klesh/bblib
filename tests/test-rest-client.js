@@ -67,7 +67,7 @@ describe('rest-client lib', function() {
 
   it('post', async function() {
     let timespan;
-    client.on('elapsed', ts => {
+    client.on('elapsed', (ts) => {
       timespan = ts;
     });
     const resp = await client.post('/', {
