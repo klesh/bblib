@@ -53,16 +53,22 @@ describe('rest-client lib', function() {
   const client = new RestClient({
     defaults: {
       baseUrl: `http://localhost:${port}`,
+      timeout: 3
     },
     beforeSend,
     afterReceive
   });
   it('get', async function() {
+    let timeout;
+    client.once('start', (opts) => {
+      timeout = opts.timeout;
+    });
     const resp = await client.get('/', {names: ['a', 'b', 'c']});
     should(resp.body.error).be.exactly(0);
     should(resp.body.data.names).be.deepEqual(['a', 'b', 'c']);
     beforeSend.should.be.called();
     afterReceive.should.be.called();
+    should(timeout).be.exactly(3);
   });
 
   it('post', async function() {
